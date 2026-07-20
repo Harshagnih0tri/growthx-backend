@@ -16,13 +16,15 @@ from sqlalchemy.orm import Session
 from app.config import settings
 from app.database import get_db, verify_db_connection as check_db, Base, engine
 from app.routers import auth, users
+from app.routers import auth, users, habits
+...
 
 app = FastAPI(
     title=settings.APP_NAME,
     version="0.1.0",
     debug=settings.DEBUG,
 )
-
+app.include_router(habits.router)
 app.include_router(auth.router)
 app.include_router(users.router)
 
