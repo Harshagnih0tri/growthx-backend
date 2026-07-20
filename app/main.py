@@ -14,13 +14,17 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.config import settings
-from app.database import get_db, verify_db_connection as check_db
+from app.database import get_db, verify_db_connection as check_db, Base, engine
+from app.routers import auth, users
 
 app = FastAPI(
     title=settings.APP_NAME,
     version="0.1.0",
     debug=settings.DEBUG,
 )
+
+app.include_router(auth.router)
+app.include_router(users.router)
 
 # CORS: required so the Flutter app (running on a different origin/port)
 # can call this API. We'll tighten allow_origins to specific domains
@@ -38,7 +42,8 @@ app.add_middleware(
 def on_startup():
     """Fails fast at boot if PostgreSQL is unreachable, instead of failing later on a random request."""
     check_db()
-    print("Database connection verified.")
+    Base.metadata.create_all(bind=engine)
+    print("Database connection verified. Tables ensured.")
 
 
 @app.get("/health", tags=["System"])
@@ -56,8 +61,3 @@ def db_health_check(db: Session = Depends(get_db)):
     """Confirms the app can actually reach PostgreSQL (runs SELECT 1)."""
     db.execute(text("SELECT 1"))
     return {"status": "ok", "database": "connected"}
-
-
-# Routers get included here as we build features, e.g.:
-# from app.routers import auth
-# app.include_router(auth.router, prefix="/api/v1/auth", tags=["Auth"])
