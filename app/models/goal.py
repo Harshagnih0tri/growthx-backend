@@ -1,45 +1,42 @@
-"""Habit model — represents a user's tracked habit."""
+"""Goal model."""
 
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import DateTime, ForeignKey, String
+from sqlalchemy import DateTime, Float, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
 
 
-class Habit(Base):
-    __tablename__ = "habits"
-
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
-        primary_key=True,
-        default=uuid.uuid4,
-    )
+class Goal(Base):
+    __tablename__ = "goals"
 
     user_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
-        ForeignKey("users.id", ondelete="CASCADE"),
-        nullable=False,
-        index=True,
+        ForeignKey("users.id"),
+        primary_key=True,
     )
 
-    name: Mapped[str] = mapped_column(
-        String(100),
+    target_weight: Mapped[float] = mapped_column(
+        Float,
         nullable=False,
     )
 
-    description: Mapped[str | None] = mapped_column(
-        String(500),
-        nullable=True,
+    daily_study_goal: Mapped[float] = mapped_column(
+        Float,
+        nullable=False,
     )
 
-    frequency: Mapped[str] = mapped_column(
-        String(50),
+    daily_water_goal: Mapped[float] = mapped_column(
+        Float,
         nullable=False,
-        default="daily",
+    )
+
+    daily_sleep_goal: Mapped[float] = mapped_column(
+        Float,
+        nullable=False,
     )
 
     created_at: Mapped[datetime] = mapped_column(
@@ -57,5 +54,5 @@ class Habit(Base):
 
     user = relationship(
         "User",
-        back_populates="habits",
+        back_populates="goal",
     )
