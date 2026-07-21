@@ -27,6 +27,8 @@ from app.models.profile import Profile
 from app.routers import auth, users, habits, daily_progress, dashboard, goal, profile, ai
 ...
 from app.models.conversation import Conversation, Message
+from app.routers import auth, users, habits, daily_progress, dashboard, goal, profile, ai, conversations
+...
 
 app = FastAPI(
     title=settings.APP_NAME,
@@ -52,7 +54,7 @@ app.include_router(daily_progress.router)
 app.include_router(dashboard.router)
 app.include_router(goal.router)
 app.include_router(profile.router)
-
+app.include_router(conversations.router)
 app.include_router(ai.router)
 @app.on_event("startup")
 def on_startup():

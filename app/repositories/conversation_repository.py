@@ -42,3 +42,12 @@ def get_messages(db: Session, conversation_id: uuid.UUID) -> list[Message]:
         .order_by(Message.created_at)
         .all()
     )
+
+def get_conversations_by_user(db: Session, user_id: uuid.UUID) -> list[Conversation]:
+    """Return all conversations belonging to a user, most recent first."""
+    return (
+        db.query(Conversation)
+        .filter(Conversation.user_id == user_id)
+        .order_by(Conversation.created_at.desc())
+        .all()
+    )
