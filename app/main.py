@@ -24,6 +24,8 @@ from app.models.habit import Habit
 from app.models.daily_progress import DailyProgress
 from app.models.goal import Goal
 from app.models.profile import Profile
+from app.routers import auth, users, habits, daily_progress, dashboard, goal, profile, ai
+...
 
 app = FastAPI(
     title=settings.APP_NAME,
@@ -50,7 +52,7 @@ app.include_router(dashboard.router)
 app.include_router(goal.router)
 app.include_router(profile.router)
 
-
+app.include_router(ai.router)
 @app.on_event("startup")
 def on_startup():
     """Fails fast at boot if PostgreSQL is unreachable, instead of failing later on a random request."""
