@@ -15,26 +15,21 @@ from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.database import get_db, verify_db_connection as check_db, Base, engine
-from app.routers import auth, users
-from app.routers import auth, users, habits
+from app.routers import auth, users, habits, daily_progress, dashboard, goal, profile
+
+# Import every model at least once so Base.metadata knows about all tables
+# before create_all() runs on startup.
 from app.models.user import User
 from app.models.habit import Habit
 from app.models.daily_progress import DailyProgress
-from app.routers.auth import router as auth_router
-from app.routers.habits import router as habit_router
-from app.routers.daily_progress import router as daily_progress_router
-from app.routers.daily_progress import router as daily_progress_router
-...
-from app.routers.dashboard import router as dashboard_router
-from app.routers.goal import router as goal_router
+from app.models.goal import Goal
+from app.models.profile import Profile
+
 app = FastAPI(
     title=settings.APP_NAME,
     version="0.1.0",
     debug=settings.DEBUG,
 )
-app.include_router(habits.router)
-app.include_router(auth.router)
-app.include_router(users.router)
 
 # CORS: required so the Flutter app (running on a different origin/port)
 # can call this API. We'll tighten allow_origins to specific domains
@@ -46,11 +41,16 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-app.include_router(auth_router)
-app.include_router(habit_router)
-app.include_router(daily_progress_router)
-app.include_router(dashboard_router)
-app.include_router(goal_router)
+
+app.include_router(auth.router)
+app.include_router(users.router)
+app.include_router(habits.router)
+app.include_router(daily_progress.router)
+app.include_router(dashboard.router)
+app.include_router(goal.router)
+app.include_router(profile.router)
+
+
 @app.on_event("startup")
 def on_startup():
     """Fails fast at boot if PostgreSQL is unreachable, instead of failing later on a random request."""
