@@ -26,7 +26,7 @@ def get_goal(
     if not goal:
         raise HTTPException(
             status_code=404,
-            detail="Goal not found",
+            detail="Goall not found",
         )
 
     return goal
