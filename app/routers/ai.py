@@ -18,5 +18,7 @@ def chat(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    reply = send_chat_message(db, current_user, payload.message)
-    return {"reply": reply}
+    reply, conversation_id = send_chat_message(
+        db, current_user, payload.message, payload.conversation_id
+    )
+    return {"reply": reply, "conversation_id": conversation_id}

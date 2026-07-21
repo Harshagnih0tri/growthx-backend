@@ -26,6 +26,7 @@ from app.models.goal import Goal
 from app.models.profile import Profile
 from app.routers import auth, users, habits, daily_progress, dashboard, goal, profile, ai
 ...
+from app.models.conversation import Conversation, Message
 
 app = FastAPI(
     title=settings.APP_NAME,

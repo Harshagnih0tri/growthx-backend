@@ -1,9 +1,12 @@
 """AI service — the only place in the app that talks to the Groq API.
 
-Phase 2 adds context injection: before sending the user's message,
-we build a system prompt from their real profile, goals, habits, and
-recent daily progress, pulled via the existing repository layer.
+Phase 2 added context injection (profile/goals/habits/progress).
+Phase 3 adds conversation memory: prior messages in a conversation
+are included on every call, and both the user's message and the
+AI's reply are persisted after each successful exchange.
 """
+
+import uuid
 
 from sqlalchemy.orm import Session
 
@@ -16,6 +19,12 @@ from app.repositories.profile_repository import ProfileRepository
 from app.repositories.goal_repository import GoalRepository
 from app.repositories.daily_progress_repository import get_all_progress
 from app.repositories.habit_repository import get_habits_by_user
+from app.repositories.conversation_repository import (
+    create_conversation,
+    get_conversation,
+    add_message,
+    get_messages,
+)
 
 if settings.GROQ_API_KEY:
     client = Groq(api_key=settings.GROQ_API_KEY)
@@ -72,16 +81,37 @@ def _build_user_context(db: Session, current_user: User) -> str:
     return "\n".join(lines)
 
 
-def send_chat_message(db: Session, current_user: User, message: str) -> str:
-    """Send a user message to Groq, grounded in their real profile/goals/habits/progress."""
+def send_chat_message(
+    db: Session,
+    current_user: User,
+    message: str,
+    conversation_id: uuid.UUID | None,
+) -> tuple[str, uuid.UUID]:
+    """
+    Send a user message to Groq, grounded in real user data and prior
+    conversation history. Returns (reply_text, conversation_id).
+    """
     if client is None:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="GROQ_API_KEY is not configured on the server.",
         )
 
-    user_context = _build_user_context(db, current_user)
+    # Resolve or create the conversation.
+    if conversation_id is not None:
+        conversation = get_conversation(db, conversation_id, current_user.id)
+        if conversation is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Conversation not found",
+            )
+    else:
+        conversation = create_conversation(db, current_user.id)
 
+    # Load prior turns in this conversation (empty list for a brand-new one).
+    history = get_messages(db, conversation.id)
+
+    user_context = _build_user_context(db, current_user)
     system_prompt = (
         "You are GrowthX, a personal productivity and self-improvement coach. "
         "You know the following real information about the user you are talking to. "
@@ -90,12 +120,19 @@ def send_chat_message(db: Session, current_user: User, message: str) -> str:
         f"{user_context}"
     )
 
+    groq_messages = [{"role": "system", "content": system_prompt}]
+    for msg in history:
+        groq_messages.append({"role": msg.role, "content": msg.content})
+    groq_messages.append({"role": "user", "content": message})
+
     response = client.chat.completions.create(
         model=settings.GROQ_MODEL,
-        messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": message},
-        ],
+        messages=groq_messages,
     )
+    reply = response.choices[0].message.content
 
-    return response.choices[0].message.content
+    # Persist both turns only after a successful reply.
+    add_message(db, conversation.id, role="user", content=message)
+    add_message(db, conversation.id, role="assistant", content=reply)
+
+    return reply, conversation.id
