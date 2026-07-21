@@ -1,9 +1,9 @@
 """AI service — the only place in the app that talks to the Groq API.
 
 Phase 2 added context injection (profile/goals/habits/progress).
-Phase 3 adds conversation memory: prior messages in a conversation
-are included on every call, and both the user's message and the
-AI's reply are persisted after each successful exchange.
+Phase 3 added conversation memory.
+This RAG phase adds a third context source: relevant chunks retrieved
+from the user's own uploaded documents.
 """
 
 import uuid
@@ -25,6 +25,7 @@ from app.repositories.conversation_repository import (
     add_message,
     get_messages,
 )
+from app.services.retrieval_service import retrieve_relevant_chunks
 
 if settings.GROQ_API_KEY:
     client = Groq(api_key=settings.GROQ_API_KEY)
@@ -81,6 +82,16 @@ def _build_user_context(db: Session, current_user: User) -> str:
     return "\n".join(lines)
 
 
+def _build_document_context(db: Session, current_user: User, query: str) -> str:
+    """Retrieve and format the most relevant chunks from the user's uploaded documents."""
+    chunks = retrieve_relevant_chunks(db, current_user, query)
+    if not chunks:
+        return "No relevant uploaded documents found for this question."
+
+    formatted = "\n\n".join(f"[Excerpt]: {chunk.content}" for chunk in chunks)
+    return f"Relevant excerpts from the user's uploaded documents:\n{formatted}"
+
+
 def send_chat_message(
     db: Session,
     current_user: User,
@@ -88,8 +99,9 @@ def send_chat_message(
     conversation_id: uuid.UUID | None,
 ) -> tuple[str, uuid.UUID]:
     """
-    Send a user message to Groq, grounded in real user data and prior
-    conversation history. Returns (reply_text, conversation_id).
+    Send a user message to Groq, grounded in real user data, relevant
+    uploaded document excerpts, and prior conversation history.
+    Returns (reply_text, conversation_id).
     """
     if client is None:
         raise HTTPException(
@@ -97,7 +109,6 @@ def send_chat_message(
             detail="GROQ_API_KEY is not configured on the server.",
         )
 
-    # Resolve or create the conversation.
     if conversation_id is not None:
         conversation = get_conversation(db, conversation_id, current_user.id)
         if conversation is None:
@@ -108,16 +119,20 @@ def send_chat_message(
     else:
         conversation = create_conversation(db, current_user.id)
 
-    # Load prior turns in this conversation (empty list for a brand-new one).
     history = get_messages(db, conversation.id)
 
     user_context = _build_user_context(db, current_user)
+    document_context = _build_document_context(db, current_user, message)
+
     system_prompt = (
         "You are GrowthX, a personal productivity and self-improvement coach. "
-        "You know the following real information about the user you are talking to. "
-        "Use it to give specific, personalized advice instead of generic answers. "
-        "Do not repeat this data back verbatim unless asked — use it to inform your reply.\n\n"
-        f"{user_context}"
+        "You know the following real information about the user you are talking to, "
+        "and you have access to relevant excerpts from documents they've uploaded "
+        "(study notes, workout plans, diet plans, goal plans). "
+        "Use all of this to give specific, personalized advice instead of generic answers. "
+        "If the document excerpts are relevant to the question, use them directly; "
+        "if not, ignore them and rely on the user's profile/goals/habits/progress instead.\n\n"
+        f"{user_context}\n\n{document_context}"
     )
 
     groq_messages = [{"role": "system", "content": system_prompt}]
@@ -131,7 +146,6 @@ def send_chat_message(
     )
     reply = response.choices[0].message.content
 
-    # Persist both turns only after a successful reply.
     add_message(db, conversation.id, role="user", content=message)
     add_message(db, conversation.id, role="assistant", content=reply)
 

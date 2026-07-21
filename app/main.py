@@ -15,7 +15,18 @@ from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.database import get_db, verify_db_connection as check_db, Base, engine
-from app.routers import auth, users, habits, daily_progress, dashboard, goal, profile
+from app.routers import (
+    auth,
+    users,
+    habits,
+    daily_progress,
+    dashboard,
+    goal,
+    profile,
+    ai,
+    conversations,
+    documents,
+)
 
 # Import every model at least once so Base.metadata knows about all tables
 # before create_all() runs on startup.
@@ -24,11 +35,8 @@ from app.models.habit import Habit
 from app.models.daily_progress import DailyProgress
 from app.models.goal import Goal
 from app.models.profile import Profile
-from app.routers import auth, users, habits, daily_progress, dashboard, goal, profile, ai
-...
 from app.models.conversation import Conversation, Message
-from app.routers import auth, users, habits, daily_progress, dashboard, goal, profile, ai, conversations
-...
+from app.models.document import Document, DocumentChunk
 
 app = FastAPI(
     title=settings.APP_NAME,
@@ -36,9 +44,6 @@ app = FastAPI(
     debug=settings.DEBUG,
 )
 
-# CORS: required so the Flutter app (running on a different origin/port)
-# can call this API. We'll tighten allow_origins to specific domains
-# once we deploy — wildcard "*" is fine for local dev only.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -54,8 +59,11 @@ app.include_router(daily_progress.router)
 app.include_router(dashboard.router)
 app.include_router(goal.router)
 app.include_router(profile.router)
-app.include_router(conversations.router)
 app.include_router(ai.router)
+app.include_router(conversations.router)
+app.include_router(documents.router)
+
+
 @app.on_event("startup")
 def on_startup():
     """Fails fast at boot if PostgreSQL is unreachable, instead of failing later on a random request."""
@@ -66,16 +74,10 @@ def on_startup():
 
 @app.get("/health", tags=["System"])
 def health_check():
-    """
-    Basic liveness check — no DB dependency, so it works even before
-    PostgreSQL is wired up. Load balancers / uptime monitors hit this
-    in production to know the service is alive.
-    """
     return {"status": "ok", "app": settings.APP_NAME, "env": settings.ENV}
 
 
 @app.get("/db-health", tags=["System"])
 def db_health_check(db: Session = Depends(get_db)):
-    """Confirms the app can actually reach PostgreSQL (runs SELECT 1)."""
     db.execute(text("SELECT 1"))
     return {"status": "ok", "database": "connected"}

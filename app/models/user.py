@@ -77,3 +77,10 @@ class User(Base):
         uselist=False,
         cascade="all, delete-orphan",
     )
+
+    profile = relationship(
+        "Profile",
+        back_populates="user",
+        uselist=False,
+        cascade="all, delete-orphan",
+    )
