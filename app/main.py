@@ -44,10 +44,15 @@ app = FastAPI(
     debug=settings.DEBUG,
 )
 
+# allow_credentials must be False alongside a wildcard origin -- browsers
+# reject "Access-Control-Allow-Origin: *" combined with
+# "Access-Control-Allow-Credentials: true" outright. This API doesn't use
+# cookies (auth is a Bearer token in the Authorization header), so
+# credentialed requests were never actually needed.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
