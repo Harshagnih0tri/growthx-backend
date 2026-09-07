@@ -11,7 +11,7 @@ class Settings:
     ENV: str = os.getenv("ENV", "development")
     DEBUG: bool = os.getenv("DEBUG", "True") == "True"
     DATABASE_URL: str = os.getenv(
-        "DATABASE_URL", "postgresql://postgres:Harsh%409231@localhost:5432/growthx"
+        "DATABASE_URL", "postgresql://postgres:password@localhost:5432/growthx"
     )
 
     # --- JWT Authentication settings ---
@@ -21,7 +21,10 @@ class Settings:
 
     # --- AI / Groq settings ---
     GROQ_API_KEY: str = os.getenv("GROQ_API_KEY", "")
-    GROQ_MODEL: str = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
+    GROQ_MODEL: str = os.getenv("GROQ_MODEL", "openai/gpt-oss-120b")
+
+    # --- Embeddings / Gemini settings ---
+    GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
 
 
 settings = Settings()
