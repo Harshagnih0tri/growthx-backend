@@ -1,10 +1,15 @@
 # GrowthX Backend
 
+[![Live API](https://img.shields.io/badge/API-live-4CAF50?style=flat-square&logo=render&logoColor=white)](https://growthx-backend-2ihu.onrender.com/docs)
+[![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=flat-square&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?style=flat-square&logo=postgresql&logoColor=white)](https://www.postgresql.org)
+[![Frontend](https://img.shields.io/badge/frontend-Flutter-02569B?style=flat-square&logo=flutter&logoColor=white)](https://github.com/Harshagnih0tri/GrowthX)
+
 FastAPI backend for GrowthX, a personal growth and habit-tracking app. Handles auth, habit/study/gym/water/weight tracking, dashboard aggregation, and an AI assistant with document-based Q&A (RAG).
 
 **Live API:** https://growthx-backend-2ihu.onrender.com (interactive docs at `/docs`)
 **Frontend repo:** https://github.com/Harshagnih0tri/GrowthX
-**Live app:** https://spiffy-semifreddo-62fb07.netlify.app/
+**Live app:** https://growthxhabittracker.netlify.app/
 
 ## Features
 
